@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AV Benachrichtigungssystem – Status</title>
+
+<style>
+body {
+    font-family: sans-serif;
+    background-color: #f9fafb;
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-weight: 300;
+} 
+
+header {
+    background-color: #2d2d2d;
+    padding: 0.75rem 1rem;
+    text-align: center;
+} 
+
+.company-info { display: inline-block; text-decoration: none; }
+.company-info-logo { height: 40px; width: auto; }
+
+nav {
+    background-color: #2d2d2d;
+    padding: 1rem;
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.25);
+} 
+.nav-list {
+    max-width: 64rem;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+}
+.nav-link {
+    color: #d1d5db;
+    font-size: 1.125rem;
+    font-weight: 400;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s, background-color 0.2s;
+}
+.nav-link:hover { color: #fff; background-color: #4b5563; }
+.nav-link.active { color: #fff; background-color: #4b5563; }
+
+main {
+    flex-grow: 1;
+    padding: 2rem 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.message-box {
+    background-color: #fff;
+    padding: 1.5rem 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    width: 80%;
+    max-width: 36rem;
+}
+
+/* Überschrift auf Statusseite */
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #4b5563;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.messages-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Abstand zwischen Nachrichten reduziert */
+}
+
+.message-item {
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 6px 10px -2px rgba(0,0,0,0.08);
+    padding: 0.75rem 1rem; /* kompakter */
+    gap: 0.3rem; /* weniger Abstand zwischen Badge, Text, Status */
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem; /* kleiner Abstand zwischen Elementen */
+}
+
+.type-badge,
+.status-label,
+.type-badge.status-label {
+    border-radius: 9999px;
+    display: inline-block;
+    width: 150px;
+    text-align: center;
+    margin-top: 0.15rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.type-badge { background-color: #595959; }
+
+/* Status-Farben */
+.label-wait { background-color: #f97316; }
+.label-accept { background-color: #10B981; }
+.label-reject { background-color: #ef4444; }
+.label-show { background-color: #3b82f6; }
+.label-display { background-color: #8b5cf6; }
+
+.timestamp {
+    color: #6b7280;
+    font-size: 0.8rem;
+    margin-top: 0.1rem;
+}
+
+.placeholder { color: #6b7280; text-align: center; }
+
+@media (max-width: 640px) {
+    .nav-list { flex-direction: column; gap: 0.5rem; }
+    .nav-link { width: 90%; text-align: center; }
+}
+</style>
+</head>
+<body>
+<header>
+    <a class="company-info" href="/?page=pickup">
+        <img class="company-info-logo" src="https://staticfiles.gleap.io/ghelpcenter_logos/YjCXX1sy3uxkMPBx13pbotTV2UXkITvwLE5gREOa19dtDlw1WrX1MCwluXn1ygODflyLBhCMxXl.svg" alt="company logo">
+    </a>
+</header>
+
+<nav>
+    <div class="nav-list">
+        <a href="/?page=pickup" class="nav-link">Kind abholen</a>
+        <a href="/?page=emergency" class="nav-link">Notfall - Hilfe anfordern</a>
+        <a href="/?page=status" class="nav-link active">Status</a>
+    </div>
+</nav>
+
+<main>
+    <div class="message-box">
+        <h2 class="title">Gesendete Nachrichten</h2>
+        <div id="messagesList" class="messages-list-container">
+            <p id="loadingIndicator" class="placeholder">Nachrichten werden geladen...</p>
+        </div>
+    </div>
+</main>
+
+<script>
+async function fetchMessages() {
+    const listContainer = document.getElementById('messagesList');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    listContainer.innerHTML = '';
+    listContainer.appendChild(loadingIndicator);
+    loadingIndicator.classList.remove('hidden');
+
+    try {
+        const response = await fetch('/messages');
+        const data = await response.json();
+        const messages = data.messages.reverse();
+
+        if (!messages || messages.length === 0) {
+            loadingIndicator.textContent = 'Bisher wurden keine Nachrichten gesendet.';
+            return;
+        }
+
+        loadingIndicator.classList.add('hidden');
+        listContainer.innerHTML = '';
+
+        messages.forEach((m) => {
+            const type = m.type || "pickup";
+            const state = m.state || "wait";
+            const timestamp = m.timestamp || "";
+            const textMsg = m.text || "";
+
+            let stateLabel = "Wartet auf Anzeige";
+            let labelClass = "label-wait";
+
+            if (state === "accept") { stateLabel = "Wird aktuell angezeigt"; labelClass = "label-accept"; }
+            else if (state === "reject") { stateLabel = "Wurde abgeleht"; labelClass = "label-reject"; }
+            else if (state === "show") { stateLabel = "Wurde angezeigt"; labelClass = "label-show"; }
+
+            let typeLabel = "Abholnachricht";
+            if (type.includes("emergency_cb")) typeLabel = "Notfall – CB";
+            else if (type.includes("emergency_event")) typeLabel = "Notfall – Veranstaltung";
+
+            const typeBadgeClass = "type-badge";
+            const statusBadgeClass = "type-badge " + labelClass;
+
+            const html = `
+                <div class="message-item">
+                    <div class="message-content">
+                        <span class="${typeBadgeClass}">${typeLabel}</span>
+                        <p><strong>${textMsg}</strong></p>
+                        <span class="${statusBadgeClass}">${stateLabel}</span>
+                        <p class="timestamp">Gesendet am: ${timestamp}</p>
+                    </div>
+                </div>
+            `;
+            listContainer.insertAdjacentHTML('beforeend', html);
+        });
+    } catch (err) {
+        loadingIndicator.textContent = '❌ Fehler beim Laden der Nachrichten.';
+        console.error('Fehler beim Laden der Nachrichten:', err);
+    }
+}
+
+window.onload = fetchMessages;
+</script>
+
+</body>
+</html>
