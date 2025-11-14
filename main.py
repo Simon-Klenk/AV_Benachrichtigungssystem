@@ -15,7 +15,6 @@ import sys
 import connect_wifi
 import time_sync
 from webserver import Webserver
-import os
 
 async def main():
     event_queue = AsyncQueue()
@@ -34,6 +33,7 @@ async def main():
     task_controll_hardware = asyncio.create_task(hardware.run())
     task_manage_state = asyncio.create_task(state_manager.run())
     task_webserver = asyncio.create_task(webserver.run())
+
     
     # NEU: Der DisplayManager braucht einen Dummy-Task auf Core 0 (die run()-Funktion)
     # um die Task-Struktur zu vervollständigen, obwohl die Arbeit auf Core 1 läuft.
