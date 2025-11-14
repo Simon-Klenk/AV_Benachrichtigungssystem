@@ -3,7 +3,7 @@ from machine import Pin, I2C
 import uasyncio as asyncio
 import sh1106
 import writer
-import roboto_34  # Font aus der funktionierenden Version
+import spleen_32  # Font aus der funktionierenden Version
 import _thread
 import utime
 
@@ -33,7 +33,7 @@ class DisplayManager:
         self._core1_running = False          # Status-Flag für den Core 1 Thread
         # ---------------------------
 
-        self.font = roboto_34  # Schriftart cachen
+        self.font = spleen_32  # Schriftart cachen
 
         try:
             # Hardware-I2C initialisieren
