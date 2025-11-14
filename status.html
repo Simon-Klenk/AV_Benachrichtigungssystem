@@ -161,67 +161,72 @@ main {
 </main>
 
 <script>
-async function fetchMessages() {
-    const listContainer = document.getElementById('messagesList');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-
-    listContainer.innerHTML = '';
-    listContainer.appendChild(loadingIndicator);
-    loadingIndicator.classList.remove('hidden');
-
-    try {
-        const response = await fetch('/messages');
-        const data = await response.json();
-        const messages = data.messages.reverse();
-
-        if (!messages || messages.length === 0) {
-            loadingIndicator.textContent = 'Bisher wurden keine Nachrichten gesendet.';
-            return;
-        }
-
-        loadingIndicator.classList.add('hidden');
+    async function fetchMessages() {
+        const listContainer = document.getElementById('messagesList');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+    
+        // Ladeanzeige zurücksetzen
         listContainer.innerHTML = '';
-
-        messages.forEach((m) => {
-            const type = m.type || "pickup";
-            const state = m.state || "wait";
-            const timestamp = m.timestamp || "";
-            const textMsg = m.text || "";
-
-            let stateLabel = "Wartet auf Anzeige";
-            let labelClass = "label-wait";
-
-            if (state === "accept") { stateLabel = "Wird aktuell angezeigt"; labelClass = "label-accept"; }
-            else if (state === "reject") { stateLabel = "Wurde abgeleht"; labelClass = "label-reject"; }
-            else if (state === "show") { stateLabel = "Wurde angezeigt"; labelClass = "label-show"; }
-
-            let typeLabel = "Abholnachricht";
-            if (type.includes("emergency_cb")) typeLabel = "Notfall – CB";
-            else if (type.includes("emergency_event")) typeLabel = "Notfall – Veranstaltung";
-
-            const typeBadgeClass = "type-badge";
-            const statusBadgeClass = "type-badge " + labelClass;
-
-            const html = `
-                <div class="message-item">
-                    <div class="message-content">
-                        <span class="${typeBadgeClass}">${typeLabel}</span>
-                        <p><strong>${textMsg}</strong></p>
-                        <span class="${statusBadgeClass}">${stateLabel}</span>
-                        <p class="timestamp">Gesendet am: ${timestamp}</p>
+        listContainer.appendChild(loadingIndicator);
+        loadingIndicator.textContent = "Nachrichten werden geladen...";
+        loadingIndicator.classList.remove('hidden');
+    
+        try {
+            const response = await fetch('/messages');
+            const data = await response.json();
+    
+            // Rückgabeformat: { messages: [...] }
+            const messages = (data.messages || []).slice().reverse();
+    
+            if (messages.length === 0) {
+                loadingIndicator.textContent = 'Bisher wurden keine Nachrichten gesendet.';
+                return;
+            }
+    
+            listContainer.innerHTML = '';
+    
+            messages.forEach((m) => {
+                const type = m.type || "PICKUP";
+                const state = m.state || "wait";
+                const timestamp = m.timestamp || "";
+                const textMsg = m.value || "";       // WICHTIG: value statt text
+    
+                // ---------- Typ-Label ----------
+                let typeLabel = "Abholnachricht";
+                if (type === "EMERGENCY_CB") typeLabel = "Notfall – Check-In";
+                else if (type === "EMERGENCY_EVENT") typeLabel = "Notfall – Veranstaltung";
+    
+                // ---------- Status-Label ----------
+                let stateLabel = "Wartet auf Anzeige";
+                let labelClass = "label-wait";
+    
+                if (state === "accept") { stateLabel = "Wird aktuell angezeigt"; labelClass = "label-accept"; }
+                else if (state === "reject") { stateLabel = "Wurde abgelehnt"; labelClass = "label-reject"; }
+                else if (state === "show") { stateLabel = "Wurde angezeigt"; labelClass = "label-show"; }
+    
+                // ---------- HTML für Nachricht ----------
+                const html = `
+                    <div class="message-item">
+                        <div class="message-content">
+                            <span class="type-badge">${typeLabel}</span>
+                            <p><strong>${textMsg}</strong></p>
+                            <span class="type-badge ${labelClass}">${stateLabel}</span>
+                            <p class="timestamp">Gesendet am: ${timestamp}</p>
+                        </div>
                     </div>
-                </div>
-            `;
-            listContainer.insertAdjacentHTML('beforeend', html);
-        });
-    } catch (err) {
-        loadingIndicator.textContent = '❌ Fehler beim Laden der Nachrichten.';
-        console.error('Fehler beim Laden der Nachrichten:', err);
+                `;
+    
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+    
+        } catch (err) {
+            loadingIndicator.textContent = '❌ Fehler beim Laden der Nachrichten.';
+            console.error('Fehler beim Laden der Nachrichten:', err);
+        }
     }
-}
-
-window.onload = fetchMessages;
-</script>
-
+    
+    window.onload = fetchMessages;
+    </script>
+    
 </body>
 </html>

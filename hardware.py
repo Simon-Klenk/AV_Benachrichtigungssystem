@@ -12,10 +12,12 @@ _BUTTON_REJECT_PIN = 14
 _latest_event = None
 _event_ready = False
 
-def _button_irq_handler(pin):
+# Modified handler to accept pin_id directly as the first argument
+def _button_irq_handler(pin_id_from_lambda, pin_obj):
     global _latest_event, _event_ready
     ts = utime.ticks_ms()
-    _latest_event = (pin.id(), pin.value(), ts)
+    # Use the pin_id_from_lambda directly
+    _latest_event = (pin_id_from_lambda, pin_obj.value(), ts)
     _event_ready = True
 
 class Hardware:
@@ -24,8 +26,12 @@ class Hardware:
         self._led_alert = machine.Pin(_LED_ALERT_PIN, machine.Pin.OUT)
         self._button_accept = machine.Pin(_BUTTON_ACCEPT_PIN, machine.Pin.IN, machine.Pin.PULL_DOWN)
         self._button_reject = machine.Pin(_BUTTON_REJECT_PIN, machine.Pin.IN, machine.Pin.PULL_DOWN)
-        self._button_accept.irq(trigger=machine.Pin.IRQ_FALLING | machine.Pin.IRQ_RISING, handler=_button_irq_handler)
-        self._button_reject.irq(trigger=machine.Pin.IRQ_FALLING | machine.Pin.IRQ_RISING, handler=_button_irq_handler)
+
+        # Use lambda functions to pass the integer pin ID along with the Pin object
+        self._button_accept.irq(trigger=machine.Pin.IRQ_FALLING | machine.Pin.IRQ_RISING,
+                                handler=lambda p: _button_irq_handler(_BUTTON_ACCEPT_PIN, p))
+        self._button_reject.irq(trigger=machine.Pin.IRQ_FALLING | machine.Pin.IRQ_RISING,
+                                 handler=lambda p: _button_irq_handler(_BUTTON_REJECT_PIN, p))
 
     async def _button_task(self):
         global _latest_event, _event_ready
@@ -48,7 +54,6 @@ class Hardware:
                     await self._event_queue.put({
                         "type": "BUTTON_PRESSED" if val == 0 else "BUTTON_RELEASED",
                         "value": value,
-                        "timestamp": ts
                     })
             await asyncio.sleep_ms(100)
 
