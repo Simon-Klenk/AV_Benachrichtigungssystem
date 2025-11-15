@@ -18,15 +18,12 @@ from webserver import Webserver
 
 async def main():
     event_queue = AsyncQueue()
+    display_event_queue = AsyncQueue()
     
     hardware = Hardware(event_queue)
-    state_manager = StateManager(event_queue)
+    state_manager = StateManager(event_queue, display_event_queue)
     webserver = Webserver(event_queue, state_manager)
-    display_manager = DisplayManager()
-
-    # HINWEIS: set_text startet jetzt den blockierenden Scroll-Thread auf Core 1
-    # und gibt die Kontrolle sofort an Core 0 zurück.
-    display_manager.set_text("Hallo das ist eine neue Nachricht")
+    display_manager = DisplayManager(display_event_queue)
 
     # Start Coroutine
     task_syc_time = asyncio.create_task(time_sync.sync_time())
@@ -39,7 +36,7 @@ async def main():
     # um die Task-Struktur zu vervollständigen, obwohl die Arbeit auf Core 1 läuft.
     task_display_manager = asyncio.create_task(display_manager.run())
     
-
+    await event_queue.put({"type": "NEWTEXT", "value": "Test-Event"})
     # Program end
     # WICHTIGE KORREKTUR: Alle "ewig" laufenden Tasks müssen hier gesammelt werden,
     # um sicherzustellen, dass das Programm nicht vorzeitig endet.
