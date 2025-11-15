@@ -107,10 +107,10 @@ class StateManager:
     # ---------------- State Update ----------------
 
     def update_state(self, index, new_state):
-        print(f"[StateManager] update_state aufgerufen für index {index}, neuer state: {new_state}")
-        _messages[index]["state"] = new_state
+        print(f"[StateManager] update_state aufgerufen für index {index}, neuer state: {self._current_display_message_index}")
+        _messages[self._current_display_message_index - 1]["state"] = new_state
         self._messages_dirty.set()
-        print(f"[StateManager] update_state aufgerufen für index {index}, neuer state: {new_state}")
+        print(f"[StateManager] update_state aufgerufen für index {index}, neuer state: {self._current_display_message_index}")
 
     # ---------------- Event Handlers ----------------
 
